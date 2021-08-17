@@ -1,6 +1,6 @@
 {
   "name": "homebridge-somfy-hotwired-2",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "homepage": "https://github.com/hmenzagh/homebridge-somfy-hotwired#readme",
   "description": "Control Somfy remotes with Homebridge",
   "author": "hmenzagh",
