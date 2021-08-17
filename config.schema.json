@@ -29,8 +29,15 @@
       "required": true,
       "default": "7"
     },
-    "movement_duration": {
-      "title": "movement_duration",
+    "movement_duration_up": {
+      "title": "movement_duration_up",
+      "description": "The 'average' time it takes for a full operation (down -> up)",
+      "type": "string",
+      "required": true,
+      "default": "10"
+    },
+    "movement_duration_down": {
+      "title": "movement_duration_down",
       "description": "The 'average' time it takes for a full operation (up -> down)",
       "type": "string",
       "required": true,

@@ -1,4 +1,5 @@
 const rpio = require('rpio');
+const _ = require('lodash');
 
 let Service, Characteristic;
 
@@ -26,7 +27,8 @@ function Somfy(log, config) {
     this.pinUp = config['pin_up'];
     this.pinDown = config['pin_down'];
     this.pinMyPosition = config['pin_my_position'];
-    this.movementDuration = config['movement_duration'];
+    this.movementDurationUp = config['movement_duration_up'];
+    this.movementDurationDown = config['movement_duration_down'];
 
     rpio.open(this.pinUp, rpio.OUTPUT, rpio.HIGH);
     rpio.open(this.pinDown, rpio.OUTPUT, rpio.HIGH);
@@ -41,7 +43,7 @@ Somfy.prototype = {
         callback(null, this.targetPosition);
     },
     setTargetPosition: function (position, callback) {
-        setTimeout(() => {
+        _.debounce(() => {
             clearInterval(this.interval);
             this.targetPosition = position;
 
@@ -83,8 +85,10 @@ Somfy.prototype = {
                 let pin = null;
                 if (this.targetPosition > this.currentPosition) {
                     pin = this.pinUp;
+					this.positionState = Characteristic.PositionState.INCREASING;
                 } else {
-                    pin = this.pinDown
+					pin = this.pinDown
+                    this.positionState = Characteristic.PositionState.DECREASING;
                 }
 
                 rpio.write(pin, rpio.LOW);
@@ -92,10 +96,9 @@ Somfy.prototype = {
                 rpio.write(pin, rpio.HIGH);
 
                 this.intermediatePosition = true;
-                this.positionState = Characteristic.PositionState.INCREASING;
             }
 
-            this.interval = setInterval(() => {
+			const tick = () => {
                 if (this.currentPosition !== this.targetPosition) {
                     if (this.targetPosition > this.currentPosition) {
                         this.currentPosition += 10;
@@ -118,8 +121,14 @@ Somfy.prototype = {
                     clearInterval(this.interval);
                 }
 
-            }, this.movementDuration * 100);
-        }, 0);
+            };
+
+			const baseDuration = this.positionState === Characteristic.PositionState.INCREASING ?
+				this.movementDurationUp : this.movementDurationDown;
+			
+			tick();
+			this.interval = setInterval(tick, baseDuration * 100);
+        }, (this.movementDurationUp + this.movementDurationDown) / 2);
 
         callback(null);
     },
