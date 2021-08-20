@@ -43,89 +43,87 @@ Somfy.prototype = {
         callback(null, this.targetPosition);
     },
     setTargetPosition: function (position, callback) {
-        _.debounce(() => {
-            clearInterval(this.interval);
-            this.targetPosition = position;
+		clearInterval(this.interval);
+		this.targetPosition = position;
 
-            if (this.targetPosition === 100) {
-                this.log('Opening shutters');
+		if (this.targetPosition === 100) {
+			this.log('Opening shutters');
 
-                rpio.write(this.pinUp, rpio.LOW);
-                rpio.msleep(this.buttonPressDuration);
-                rpio.write(this.pinUp, rpio.HIGH);
+			rpio.write(this.pinUp, rpio.LOW);
+			rpio.msleep(this.buttonPressDuration);
+			rpio.write(this.pinUp, rpio.HIGH);
 
-                this.intermediatePosition = false;
-                this.positionState = Characteristic.PositionState.DECREASING;
-            } else if (this.targetPosition === 10) {
-                this.log('Going to MySomfy position');
+			this.intermediatePosition = false;
+			this.positionState = Characteristic.PositionState.DECREASING;
+		} else if (this.targetPosition === 10) {
+			this.log('Going to MySomfy position');
 
-                rpio.write(this.pinMyPosition, rpio.LOW);
-                rpio.msleep(this.buttonPressDuration);
-                rpio.write(this.pinMyPosition, rpio.HIGH);
-                this.intermediatePosition = false;
-                if (this.targetPosition > this.currentPosition) {
-                    this.positionState = Characteristic.PositionState.INCREASING;
-                } else {
-                    this.positionState = Characteristic.PositionState.DECREASING;
-                }
-            } else if (this.targetPosition === 0) {
-                this.log('Closing shutters');
+			rpio.write(this.pinMyPosition, rpio.LOW);
+			rpio.msleep(this.buttonPressDuration);
+			rpio.write(this.pinMyPosition, rpio.HIGH);
+			this.intermediatePosition = false;
+			if (this.targetPosition > this.currentPosition) {
+				this.positionState = Characteristic.PositionState.INCREASING;
+			} else {
+				this.positionState = Characteristic.PositionState.DECREASING;
+			}
+		} else if (this.targetPosition === 0) {
+			this.log('Closing shutters');
 
-                rpio.write(this.pinDown, rpio.LOW);
-                rpio.msleep(this.buttonPressDuration);
-                rpio.write(this.pinDown, rpio.HIGH);
-                this.intermediatePosition = false;
-                this.positionState = Characteristic.PositionState.INCREASING;
-            } else {
-                this.log('Opening shutters to %i percent', this.targetPosition);
+			rpio.write(this.pinDown, rpio.LOW);
+			rpio.msleep(this.buttonPressDuration);
+			rpio.write(this.pinDown, rpio.HIGH);
+			this.intermediatePosition = false;
+			this.positionState = Characteristic.PositionState.INCREASING;
+		} else {
+			this.log('Opening shutters to %i percent', this.targetPosition);
 
-                let pin = null;
-                if (this.targetPosition > this.currentPosition) {
-                    pin = this.pinUp;
-					this.positionState = Characteristic.PositionState.INCREASING;
-                } else {
-					pin = this.pinDown
-                    this.positionState = Characteristic.PositionState.DECREASING;
-                }
+			let pin = null;
+			if (this.targetPosition > this.currentPosition) {
+				pin = this.pinUp;
+				this.positionState = Characteristic.PositionState.INCREASING;
+			} else {
+				pin = this.pinDown
+				this.positionState = Characteristic.PositionState.DECREASING;
+			}
 
-                rpio.write(pin, rpio.LOW);
-                rpio.msleep(this.buttonPressDuration);
-                rpio.write(pin, rpio.HIGH);
+			rpio.write(pin, rpio.LOW);
+			rpio.msleep(this.buttonPressDuration);
+			rpio.write(pin, rpio.HIGH);
 
-                this.intermediatePosition = true;
-            }
+			this.intermediatePosition = true;
+		}
 
-			const tick = () => {
-                if (this.currentPosition !== this.targetPosition) {
-                    if (this.targetPosition > this.currentPosition) {
-                        this.currentPosition += 10;
-                    } else {
-                        this.currentPosition -= 10;
-                    }
-                    this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.currentPosition);
-                } else {
+		const tick = () => {
+			if (this.currentPosition !== this.targetPosition) {
+				if (this.targetPosition > this.currentPosition) {
+					this.currentPosition += 10;
+				} else {
+					this.currentPosition -= 10;
+				}
+				this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.currentPosition);
+			} else {
 
-                    if (this.intermediatePosition) {
-                        rpio.write(this.pinMyPosition, rpio.LOW);
-                        rpio.msleep(this.buttonPressDuration);
-                        rpio.write(this.pinMyPosition, rpio.HIGH);
-                    }
+				if (this.intermediatePosition) {
+					rpio.write(this.pinMyPosition, rpio.LOW);
+					rpio.msleep(this.buttonPressDuration);
+					rpio.write(this.pinMyPosition, rpio.HIGH);
+				}
 
-                    this.log('Operation completed!');
+				this.log('Operation completed!');
 
-                    this.positionState = Characteristic.PositionState.STOPPED;
-                    this.service.getCharacteristic(Characteristic.PositionState).updateValue(this.positionState);
-                    clearInterval(this.interval);
-                }
+				this.positionState = Characteristic.PositionState.STOPPED;
+				this.service.getCharacteristic(Characteristic.PositionState).updateValue(this.positionState);
+				clearInterval(this.interval);
+			}
 
-            };
+		};
 
-			const baseDuration = this.positionState === Characteristic.PositionState.INCREASING ?
-				this.movementDurationUp : this.movementDurationDown;
-			
-			tick();
-			this.interval = setInterval(tick, baseDuration * 100);
-        }, (this.movementDurationUp + this.movementDurationDown) / 2);
+		const baseDuration = this.positionState === Characteristic.PositionState.INCREASING ?
+			this.movementDurationUp : this.movementDurationDown;
+		
+		tick();
+		this.interval = setInterval(tick, baseDuration * 100);
 
         callback(null);
     },
@@ -152,8 +150,12 @@ Somfy.prototype = {
             minStep: 10,
             perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
         });
+
+		const averageDuration = (this.movementDurationUp + this.movementDurationDown) / 2
+		const debouncedSetTargetPosition = _.debounce(this.setTargetPosition.bind(this), averageDuration * 100)
+
         targetPositionChar.on('get', this.getTargetPosition.bind(this));
-        targetPositionChar.on('set', this.setTargetPosition.bind(this));
+        targetPositionChar.on('set', debouncedSetTargetPosition);
 
         this.service.getCharacteristic(Characteristic.PositionState)
             .on('get', this.getPositionState.bind(this));
